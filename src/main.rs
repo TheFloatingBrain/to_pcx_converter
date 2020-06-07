@@ -31,26 +31,50 @@ fn create_out_file_path( file_path : &std::path::Path ) -> String
     return out_file_path;
 }
 
-fn write_pcx( file_path : &std::path::Path, from : &image::RgbImage )
+fn write_image_data< Writer : FnMut( &mut Vec< u8 > ) -> std::io::Result< () > >( 
+        from : &image::RgbImage, mut write_row : Writer )
 {
-    let x_bound = from.dimensions().0 as u16;
-    let y_bound = from.dimensions().1 as u16;
-    let mut pcx_writer = pcx::WriterPaletted::create_file( 
-            std::path::Path::new( &create_out_file_path( file_path ) ), 
-            ( x_bound * 3, y_bound ), ( 100, 100 ) ).unwrap();
+    let x_bound = from.dimensions().0 as usize;
+    let y_bound = from.dimensions().1 as usize;
     let mut row : Vec< u8 > = Vec::new();
-    row.resize( x_bound as usize * 3, 0 );
-    for y in 0..( y_bound as usize )
+    row.resize( x_bound * 3, 0 );
+    for y in 0..y_bound
     {
-        for x in 0..( x_bound as usize )
+        for x in 0..x_bound
         {
-            let current_pixel = from.pixels().nth( ( y * x_bound as usize ) + x ).unwrap();
+            let current_pixel = from.pixels().nth( ( y * x_bound ) + x ).unwrap();
             row[ x * 3 ] = current_pixel[ 0 ];
             row[ ( x * 3 ) + 1 ] = current_pixel[ 1 ];
             row[ ( x * 3 ) + 2 ] = current_pixel[ 2 ];
         }
-        pcx_writer.write_row( &row ).unwrap();
+        let row_reference : &mut Vec< u8 > = row.as_mut();
+        write_row( row_reference ).unwrap();
     }
+}
+
+fn write_pcx( file_path : &std::path::Path, from : &image::RgbImage )
+{
+    let x_bound = from.dimensions().0 as usize;
+    let y_bound = from.dimensions().1 as usize;
+    let mut pcx_writer = pcx::WriterRgb::create_file( 
+            std::path::Path::new( &create_out_file_path( file_path ) ), 
+            ( x_bound as u16, y_bound as u16 ), ( 100, 100 ) ).unwrap();
+    write_image_data( from, | row : &mut Vec< u8 > | -> std::io::Result< () > { 
+        return pcx_writer.write_row( row );
+     } );
+     pcx_writer.finish().unwrap();
+}
+
+fn write_pcx_paletted( file_path : &std::path::Path, from : &image::RgbImage )
+{
+    let x_bound = from.dimensions().0 as usize;
+    let y_bound = from.dimensions().1 as usize;
+    let mut pcx_writer = pcx::WriterPaletted::create_file( 
+            std::path::Path::new( &create_out_file_path( file_path ) ), 
+            ( ( x_bound * 3 ) as u16, y_bound as u16 ), ( 100, 100 ) ).unwrap();
+    write_image_data( from, | row : &mut Vec< u8 > | -> std::io::Result< () > { 
+        return pcx_writer.write_row( row );
+     } );
     let palette : Vec< image::Rgb< u8 > > = create_pallete( from );
     let mut palette_u8 : Vec< u8 > = Vec::new();
     palette_u8.resize( x_bound as usize * 3, 0 );
@@ -68,5 +92,10 @@ fn main()
     let arguments : Vec< String > = std::env::args().collect();
     let file_path = std::path::Path::new( &arguments[ 1 ] );
     let media = image::open( file_path ).unwrap();
-    write_pcx( file_path, &media.to_rgb() );
+    if arguments.len() > 2 {
+        write_pcx( file_path, &media.to_rgb() );
+    }
+    else {
+        write_pcx_paletted( file_path, &media.to_rgb() );
+    }
 }
