@@ -30,7 +30,6 @@ fn create_out_file_path( file_path : &std::path::Path ) -> String
     out_file_path.push_str( ".pcx" );
     return out_file_path;
 }
-pub use pcx::WriterPaletted;
 
 fn write_pcx( file_path : &std::path::Path, from : &image::RgbImage )
 {
