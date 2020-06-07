@@ -1,0 +1,11 @@
+[package]
+name = "to_pcx_converter"
+version = "0.1.0"
+authors = ["TheFloatingBrain <TheFloatingBrain@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+image = "0.23.4"
+pcx = "0.2"
