@@ -25,10 +25,12 @@ fn create_out_file_path( file_path : &std::path::Path ) -> String
 {
     let out_file_name = file_path.file_stem().unwrap().to_str().unwrap();
     let mut out_file_path = file_path.parent().unwrap().to_str().unwrap().to_owned();
+    out_file_path.push_str( "/" );
     out_file_path.push_str( out_file_name );
     out_file_path.push_str( ".pcx" );
     return out_file_path;
 }
+pub use pcx::WriterPaletted;
 
 fn write_pcx( file_path : &std::path::Path, from : &image::RgbImage )
 {
@@ -36,11 +38,9 @@ fn write_pcx( file_path : &std::path::Path, from : &image::RgbImage )
     let y_bound = from.dimensions().1 as u16;
     let mut pcx_writer = pcx::WriterPaletted::create_file( 
             std::path::Path::new( &create_out_file_path( file_path ) ), 
-            ( x_bound, y_bound ), ( 100, 100 ) ).unwrap();
+            ( x_bound * 3, y_bound ), ( 100, 100 ) ).unwrap();
     let mut row : Vec< u8 > = Vec::new();
-    println!( "HERE 0" );
     row.resize( x_bound as usize * 3, 0 );
-    println!( "HERE 1 {}", row.len() );
     for y in 0..( y_bound as usize )
     {
         for x in 0..( x_bound as usize )
@@ -50,20 +50,18 @@ fn write_pcx( file_path : &std::path::Path, from : &image::RgbImage )
             row[ ( x * 3 ) + 1 ] = current_pixel[ 1 ];
             row[ ( x * 3 ) + 2 ] = current_pixel[ 2 ];
         }
-        pcx_writer.write_row( &row ).ok();
+        pcx_writer.write_row( &row ).unwrap();
     }
     let palette : Vec< image::Rgb< u8 > > = create_pallete( from );
     let mut palette_u8 : Vec< u8 > = Vec::new();
-    println!( "HERE 2" );
     palette_u8.resize( x_bound as usize * 3, 0 );
-    println!( "HERE 3" );
     for color in 0..palette.len()
     {
         palette_u8[ color * 3 ] = palette[ color ][ 0 ];
         palette_u8[ ( color * 3 ) + 1 ] = palette[ color ][ 1 ];
         palette_u8[ ( color * 3 ) + 2 ] = palette[ color ][ 2 ];
     }
-    pcx_writer.write_palette( &palette_u8 ).ok();
+    pcx_writer.write_palette( &palette_u8 ).unwrap();
 }
 
 fn main()
